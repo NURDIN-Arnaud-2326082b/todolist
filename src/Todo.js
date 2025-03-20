@@ -13,16 +13,13 @@ function Todo({
   markSelectedTasksAsDone,
   deleteSelectedTasks,
   toggleSelectedTasksStatus,
+  removeCategoryFromTask,
+  handleCategoryClick,
 }) {
-  const totalTasks = tasks.length;
-  const ongoingTasks = tasks.filter((task) => !task.done).length;
-  const completedTasks = tasks.filter((task) => task.done).length;
+
 
   return (
     <div>
-      <p className="task-stats">
-        {totalTasks} tâches, {ongoingTasks} tâches en cours, {completedTasks} tâches effectuées
-      </p>
       <ul>
         {tasks.map((task) => (
           <Task
@@ -34,6 +31,8 @@ function Todo({
             deleteTask={deleteTask}
             toggleTaskDetails={toggleTaskDetails}
             toggleTaskSelection={toggleTaskSelection}
+            removeCategoryFromTask={removeCategoryFromTask}
+            handleCategoryClick={handleCategoryClick}
           />
         ))}
       </ul>

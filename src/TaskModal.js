@@ -1,6 +1,23 @@
 import React from 'react';
 
 function TaskModal({ newTask, setNewTask, categories, addTask, closeModal }) {
+  const addCategoryToTask = (categoryId) => {
+    const selectedCategories = newTask.categories || [];
+    if (!selectedCategories.includes(categoryId)) {
+      setNewTask({
+        ...newTask,
+        categories: [...selectedCategories, categoryId],
+      });
+    }
+  };
+
+  const removeCategoryFromTask = (categoryId) => {
+    setNewTask({
+      ...newTask,
+      categories: newTask.categories.filter((id) => id !== categoryId),
+    });
+  };
+
   return (
     <div className="modal">
       <div className="modal-content">
@@ -37,19 +54,46 @@ function TaskModal({ newTask, setNewTask, categories, addTask, closeModal }) {
           />
         </label>
         <label>
-          Catégorie :
+          Catégories :
           <select
-            value={newTask.category || ''}
-            onChange={(e) => setNewTask({ ...newTask, category: e.target.value })}
+            onChange={(e) => {
+              const categoryId = parseInt(e.target.value, 10);
+              if (categoryId) {
+                addCategoryToTask(categoryId);
+                e.target.value = ""; // Réinitialiser le menu déroulant
+              }
+            }}
           >
-            <option value="">Aucune</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.title}
-              </option>
-            ))}
+            <option value="">-- Sélectionner une catégorie --</option>
+            {categories
+              .filter((category) => !newTask.categories.includes(category.id))
+              .map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.title}
+                </option>
+              ))}
           </select>
         </label>
+        <div className="selected-categories">
+          {newTask.categories.map((categoryId) => {
+            const category = categories.find((cat) => cat.id === categoryId);
+            return (
+              <span
+                key={category.id}
+                className="selected-category"
+                style={{ backgroundColor: category.color }}
+              >
+                {category.title}
+                <button
+                  className="remove-category"
+                  onClick={() => removeCategoryFromTask(category.id)}
+                >
+                  x
+                </button>
+              </span>
+            );
+          })}
+        </div>
         <div className="modal-actions">
           <button onClick={addTask}>Ajouter</button>
           <button onClick={closeModal}>Annuler</button>

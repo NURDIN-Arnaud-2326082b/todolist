@@ -8,6 +8,8 @@ function Task({
   deleteTask,
   toggleTaskDetails,
   toggleTaskSelection,
+  removeCategoryFromTask,
+  handleCategoryClick,
 }) {
   const isOpen = openTask === task.id;
 
@@ -19,10 +21,6 @@ function Task({
           checked={selectedTasks.includes(task.id)}
           onChange={() => toggleTaskSelection(task.id)}
         />
-        <span
-          className="task-category-color"
-          style={{ backgroundColor: task.categoryColor }}
-        ></span>
         <strong>
           {task.title} - {task.date_echeance}
         </strong>
@@ -32,6 +30,30 @@ function Task({
           onClick={() => toggleTaskDetails(task.id)}
         ></span>
       </div>
+
+      <div className="task-categories">
+        {task.categories &&
+          task.categories.map((category) => (
+            <span
+              key={category.id}
+              className="task-category"
+              style={{ backgroundColor: category.color }}
+              onClick={() => handleCategoryClick(category.id)}
+            >
+              {category.title}
+              <button
+                className="remove-category"
+                onClick={(e) => {
+                  e.stopPropagation(); 
+                  removeCategoryFromTask(task.id, category.id);
+                }}
+              >
+                x
+              </button>
+            </span>
+          ))}
+      </div>
+
       {isOpen && (
         <div className="task-details">
           <p><strong>Description:</strong> {task.description || 'Aucune description'}</p>

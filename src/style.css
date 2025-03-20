@@ -94,6 +94,83 @@ ul {
   border-radius: 50%;
 }
 
+.task-categories {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.selected-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.selected-category {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px; /* Réduire la taille du padding */
+  border-radius: 12px; /* Forme ovale */
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap; /* Empêche le texte de passer à la ligne */
+}
+
+.selected-category .remove-category {
+  margin-left: 5px; /* Réduire l'espace entre le texte et le bouton "x" */
+  background: none;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0; /* Enlever le padding du bouton "x" */
+}
+
+.selected-category .remove-category:hover {
+  color: red;
+}
+
+.task-category {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px; /* Réduire la taille du padding */
+  border-radius: 12px; /* Forme ovale */
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap; /* Empêche le texte de passer à la ligne */
+}
+
+.task-category .remove-category {
+  margin-left: 5px; /* Réduire l'espace entre le texte et le bouton "x" */
+  background: none;
+  border: none;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0; /* Enlever le padding du bouton "x" */
+}
+
+.task-category .remove-category:hover {
+  color: red;
+}
+
 .urgent-indicator {
   width: 0;
   height: 0;

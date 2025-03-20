@@ -14,6 +14,11 @@ function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [showCompletedTasks, setShowCompletedTasks] = useState(true);
+  const [filteredCategory, setFilteredCategory] = useState(null);
+  const [sortCriteria, setSortCriteria] = useState('date_recent');
+  const totalTasks = tasks.length;
+  const ongoingTasks = tasks.filter((task) => !task.done).length;
+  const completedTasks = tasks.filter((task) => task.done).length;
 
   const [newTask, setNewTask] = useState({
     title: '',
@@ -21,7 +26,7 @@ function App() {
     date_echeance: '',
     urgent: false,
     done: false,
-    category: null,
+    categories: [],
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -34,12 +39,16 @@ function App() {
       .then((response) => response.json())
       .then((data) => {
         const updatedTasks = data.taches.map((task) => {
-          const relation = data.relations.find((rel) => rel.tache === task.id);
+          // Trouver toutes les catégories associées à cette tâche via les relations
+          const taskCategories = data.relations
+            .filter((relation) => relation.tache === task.id)
+            .map((relation) =>
+              data.categories.find((cat) => cat.id === relation.categorie)
+            );
+
           return {
             ...task,
-            categoryColor: relation
-              ? data.categories.find((cat) => cat.id === relation.categorie).color
-              : "#ccc",
+            categories: taskCategories, // Associez les catégories complètes à la tâche
           };
         });
 
@@ -128,7 +137,9 @@ function App() {
       id: tasks.length > 0 ? tasks[tasks.length - 1].id + 1 : 1,
       date_creation: new Date().toLocaleDateString('fr-FR'),
       date_echeance: new Date(newTask.date_echeance).toLocaleDateString('fr-FR'),
-      categoryColor: categories.find((cat) => cat.id === newTask.category)?.color || "#ccc",
+      categories: newTask.categories.map((categoryId) =>
+        categories.find((cat) => cat.id === categoryId)
+      ), // Associer les catégories complètes
     };
 
     setTasks((prevTasks) => [...prevTasks, newTaskWithId]);
@@ -138,7 +149,7 @@ function App() {
       date_echeance: '',
       urgent: false,
       done: false,
-      category: null,
+      categories: [],
     });
     closeTaskModal();
   };
@@ -167,12 +178,15 @@ function App() {
 
           if (importedData.taches && importedData.categories && importedData.relations) {
             const updatedTasks = importedData.taches.map((task) => {
-              const relation = importedData.relations.find((rel) => rel.tache === task.id);
+              const taskCategories = importedData.relations
+                .filter((relation) => relation.tache === task.id)
+                .map((relation) =>
+                  importedData.categories.find((cat) => cat.id === relation.categorie)
+                );
+
               return {
                 ...task,
-                categoryColor: relation
-                  ? importedData.categories.find((cat) => cat.id === relation.categorie).color
-                  : "#ccc",
+                categories: taskCategories,
               };
             });
 
@@ -204,9 +218,51 @@ function App() {
     }
   };
 
+  const handleCategoryClick = (categoryId) => {
+    setFilteredCategory(categoryId);
+  };
+
+  const removeCategoryFromTask = (taskId, categoryId) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              categories: task.categories.filter((cat) => cat.id !== categoryId),
+            }
+          : task
+      )
+    );
+  };
+
+  const sortTasks = (tasks, criteria) => {
+    switch (criteria) {
+      case 'date_recent':
+        return tasks.sort((a, b) => new Date(b.date_echeance.split('/').reverse().join('-')) - new Date(a.date_echeance.split('/').reverse().join('-')));
+      case 'date_late':
+        return tasks.sort((a, b) => new Date(a.date_echeance.split('/').reverse().join('-')) - new Date(b.date_echeance.split('/').reverse().join('-')));
+      case 'alphabetical':
+        return tasks.sort((a, b) => a.title.localeCompare(b.title));
+      case 'category':
+        return tasks.sort((a, b) => (a.categories[0]?.title || '').localeCompare(b.categories[0]?.title || ''));
+      default:
+        return tasks;
+    }
+  };
+
+  const filteredTasks = tasks
+  .filter((task) => showCompletedTasks || !task.done) // Filtrer les tâches effectuées si nécessaire
+  .filter((task) => (filteredCategory ? task.categories.some((cat) => cat.id === filteredCategory) : true));
+
+  const sortedTasks = sortTasks(filteredTasks, sortCriteria);
+
   return (
     <div>
-      <Header />
+      <Header
+        totalTasks={totalTasks}
+        ongoingTasks={ongoingTasks}
+        completedTasks={completedTasks}
+      />
       <div className="import-reset-buttons">
         <label htmlFor="file-input" className="import-button">
           Importer un fichier JSON
@@ -235,8 +291,15 @@ function App() {
           {showCompletedTasks ? 'Masquer les tâches effectuées' : 'Afficher les tâches effectuées'}
         </span>
       </div>
+      <button onClick={() => setFilteredCategory(null)}>Afficher toutes les tâches</button>
+      <select onChange={(e) => setSortCriteria(e.target.value)} value={sortCriteria}>
+        <option value="date_recent">Date d'échéance (la plus tardive)</option>
+        <option value="date_late">Date d'échéance (la plus récente)</option>
+        <option value="alphabetical">Ordre alphabétique</option>
+        <option value="category">Catégorie</option>
+      </select>
       <Todo
-        tasks={tasks.filter(task => showCompletedTasks || !task.done)}
+        tasks={sortedTasks}
         categories={categories}
         selectedTasks={selectedTasks}
         openTask={openTask}
@@ -247,6 +310,8 @@ function App() {
         markSelectedTasksAsDone={markSelectedTasksAsDone}
         deleteSelectedTasks={deleteSelectedTasks}
         toggleSelectedTasksStatus={toggleSelectedTasksStatus}
+        removeCategoryFromTask={removeCategoryFromTask}
+        handleCategoryClick={handleCategoryClick} // Passez la fonction ici
       />
       {isTaskModalOpen && (
         <TaskModal
