@@ -69,6 +69,12 @@ ul {
   flex-direction: column;
 }
 
+/* Style pour les tâches urgentes - bordure rouge à gauche */
+.task-item.urgent {
+  border-left: 5px solid #ff3b30; /* Bordure rouge vif à gauche */
+  padding-left: 10px; /* Ajouter un peu d'espace pour compenser la bordure */
+}
+
 .task-item.done {
   background-color: #e6ffe6;
   border-color: #28a745;
@@ -171,16 +177,9 @@ ul {
   color: red;
 }
 
+/* Ancien style pour l'indicateur urgent (triangle) - maintenant supprimé */
 .urgent-indicator {
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 20px solid red;
-  position: absolute;
-  right: 30px; /* Ajustez cette valeur pour positionner le triangle rouge */
-  top: 50%;
-  transform: translateY(-50%);
+  display: none; /* Cache l'ancien indicateur */
 }
 
 .task-toggle {
@@ -455,3 +454,340 @@ input:checked + .slider:before {
   background-color: #a71d2a;
 }
 
+.reset-filters-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.reset-filters-button:hover {
+  background-color: #5a6268;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  max-width: 90%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-content button {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #0056b3;
+}
+
+.modal-actions {
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  background-color: #ccc;
+  color: black;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-actions button:hover {
+  background-color: #aaa;
+}
+
+.export-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.export-button:hover {
+  background-color: #218838;
+}
+
+/* Dans votre fichier CSS */
+.recurrence-indicator {
+  margin-left: 5px;
+  color: #007bff;
+  cursor: help;
+}
+
+/* Dans votre fichier CSS */
+.selected-contacts {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.selected-contact {
+  background-color: #e0e0e0;
+  border-radius: 16px;
+  padding: 4px 8px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 5px;
+}
+
+.selected-contact .remove-contact {
+  background: none !important;
+  border: none !important;
+  color: #666 !important;
+  margin-left: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  background-color: transparent !important;
+}
+
+.selected-contact .remove-contact:hover {
+  color: #f44336 !important;
+}
+
+.contact-input-container {
+  display: flex;
+  margin-top: 5px;
+}
+
+.contact-input-container input {
+  flex-grow: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.contact-suggestions {
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.contact-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.contact-suggestion:hover {
+  background-color: #f0f0f0;
+}
+
+.contact-input-container {
+  position: relative;
+  margin-top: 5px;
+  width: 100%;
+}
+
+.search-container {
+  position: relative;
+  margin: 10px 0;
+  width: 100%;
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px;
+  padding-right: 30px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #888;
+}
+
+.clear-search:hover {
+  color: #333;
+}
+
+/* Bouton de filtre */
+.filter-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.filter-button:hover {
+  background-color: #5a6268;
+}
+
+.more-categories {
+  display: inline-block;
+  background-color: #6c757d;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.more-categories:hover {
+  background-color: #5a6268;
+}
+
+.task-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Styles pour l'écran de démarrage */
+.start-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  padding: 20px;
+}
+
+.start-container {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  text-align: center;
+  max-width: 800px;
+  width: 100%;
+}
+
+.start-container h1 {
+  color: #007bff;
+  margin-bottom: 20px;
+}
+
+.start-options {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
+  .start-options {
+    flex-direction: column;
+  }
+}
+
+.start-option {
+  flex: 1;
+  padding: 30px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  transition: transform 0.2s;
+}
+
+.start-option:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.start-option h2 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.start-option p {
+  margin-bottom: 25px;
+  color: #666;
+}
+
+.start-option button,
+.start-option .import-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: inline-block;
+}
+
+.start-option button:hover,
+.start-option .import-button:hover {
+  background-color: #0056b3;
+}
+
+/* Ajuster le style pour les actions de l'app */
+.app-actions {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.error-input {
+  border: 1px solid #ff3b30 !important;
+  background-color: #fff8f8;
+}
+
+.error-message {
+  color: #ff3b30;
+  font-size: 12px;
+  display: block;
+  margin-top: 2px;
+}
+
+.required-fields-notice {
+  margin-top: 15px;
+  font-size: 12px;
+  color: #666;
+  text-align: left;
+}

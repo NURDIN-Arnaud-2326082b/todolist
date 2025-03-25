@@ -4,8 +4,14 @@ import Todo from './Todo';
 import TaskModal from './TaskModal';
 import CategoryModal from './CategoryModal';
 import './style.css';
+import SortModal from './SortModal';
+import SearchBar from './SearchBar';
+import StartScreen from './StartScreen'; // Importer le nouveau composant
 
 function App() {
+  // Nouvel état pour contrôler l'affichage de l'écran de démarrage
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const [tasks, setTasks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedTasks, setSelectedTasks] = useState([]);
@@ -19,7 +25,7 @@ function App() {
   const totalTasks = tasks.length;
   const ongoingTasks = tasks.filter((task) => !task.done).length;
   const completedTasks = tasks.filter((task) => task.done).length;
-
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -27,6 +33,10 @@ function App() {
     urgent: false,
     done: false,
     categories: [],
+    recurring: false,
+    recurrenceInterval: null,
+    recurrenceEndDate: '',
+    contacts: []
   });
 
   const [newCategory, setNewCategory] = useState({
@@ -34,37 +44,86 @@ function App() {
     color: '#000000',
   });
 
-  useEffect(() => {
-    fetch('/data.json')
-      .then((response) => response.json())
-      .then((data) => {
-        const updatedTasks = data.taches.map((task) => {
-          // Trouver toutes les catégories associées à cette tâche via les relations
-          const taskCategories = data.relations
-            .filter((relation) => relation.tache === task.id)
-            .map((relation) =>
-              data.categories.find((cat) => cat.id === relation.categorie)
-            );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState(null);
 
-          return {
-            ...task,
-            categories: taskCategories, // Associez les catégories complètes à la tâche
-          };
-        });
+const startWithEmptyData = () => {
+  const confirmNewList = window.confirm("Voulez-vous vraiment créer une nouvelle liste vide ?");
+  
+  if (!confirmNewList) return;
+  
+  setTasks([]);
+  setCategories([]);
+  setIsInitialized(true);
+};
 
-        updatedTasks.sort(
-          (a, b) =>
-            new Date(a.date_echeance.split('/').reverse().join('-')) -
-            new Date(b.date_echeance.split('/').reverse().join('-'))
-        );
+  // Fonction pour démarrer l'application avec des données importées
+  const startWithImportedData = (importedData) => {
+    if (importedData.taches && importedData.categories && importedData.relations) {
+      const updatedTasks = importedData.taches.map((task) => {
+        const taskCategories = importedData.relations
+          .filter((relation) => relation.tache === task.id)
+          .map((relation) =>
+            importedData.categories.find((cat) => cat.id === relation.categorie)
+          );
 
-        setTasks(updatedTasks);
-        setCategories(data.categories);
-      })
-      .catch((error) =>
-        console.error("Erreur de chargement des données :", error)
+        return {
+          ...task,
+          categories: taskCategories,
+        };
+      });
+
+      updatedTasks.sort(
+        (a, b) =>
+          new Date(a.date_echeance.split('/').reverse().join('-')) -
+          new Date(b.date_echeance.split('/').reverse().join('-'))
       );
+
+      setTasks(updatedTasks);
+      setCategories(importedData.categories);
+      setIsInitialized(true);
+      alert("Données importées avec succès !");
+    } else {
+      alert("Le fichier JSON ne contient pas les données attendues.");
+    }
+  };
+
+  // Demander la permission des notifications
+  useEffect(() => {
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
   }, []);
+
+  useEffect(() => {
+    // Vérifier les tâches en retard une seule fois au chargement
+    if (tasks.length > 0) {
+      const now = new Date();
+      
+      tasks.forEach(task => {
+        if (!task.done) {
+          const dueDate = new Date(task.date_echeance.split('/').reverse().join('-'));
+          
+          // Si la date d'échéance est aujourd'hui ou dans le passé
+          if (dueDate <= now) {
+            if (Notification.permission === 'granted') {
+              const isOverdue = dueDate < now;
+              new Notification(isOverdue ? 'Tâche en retard' : 'Tâche arrivée à échéance', {
+                body: isOverdue 
+                  ? `La tâche "${task.title}" est en retard.` 
+                  : `La tâche "${task.title}" est arrivée à échéance aujourd'hui.`,
+                icon: '/favicon.ico'
+              });
+            }
+          }
+        }
+      });
+    }
+  }, [tasks]); // Se déclenche uniquement lorsque les tâches changent
+
+  // Suppression du useEffect qui charge automatiquement les données
+  // ce sera fait par l'écran de démarrage maintenant
 
   const toggleTaskStatus = (id) => {
     setTasks((prevTasks) =>
@@ -122,7 +181,13 @@ function App() {
     setIsFabOpen(false);
   };
 
-  const closeTaskModal = () => setIsTaskModalOpen(false);
+  const closeTaskModal = () => {
+    setIsTaskModalOpen(false);
+    if (isEditing) {
+      setIsEditing(false);
+      setTaskToEdit(null);
+    }
+  };
 
   const openCategoryModal = () => {
     setIsCategoryModalOpen(true);
@@ -139,10 +204,39 @@ function App() {
       date_echeance: new Date(newTask.date_echeance).toLocaleDateString('fr-FR'),
       categories: newTask.categories.map((categoryId) =>
         categories.find((cat) => cat.id === categoryId)
-      ), // Associer les catégories complètes
+      ),
     };
-
+  
     setTasks((prevTasks) => [...prevTasks, newTaskWithId]);
+    
+    // Si la tâche est récurrente, créer les occurrences futures
+    if (newTask.recurring && newTask.recurrenceInterval) {
+      const occurrences = [];
+      let currentDate = new Date(newTask.date_echeance);
+      const endDate = newTask.recurrenceEndDate ? new Date(newTask.recurrenceEndDate) : null;
+      
+      // Limiter à 100 occurrences maximum pour éviter les boucles infinies
+      for (let i = 0; i < 100; i++) {
+        // Ajouter l'intervalle en jours
+        currentDate = new Date(currentDate.setDate(currentDate.getDate() + newTask.recurrenceInterval));
+        
+        // Arrêter si on dépasse la date de fin
+        if (endDate && currentDate > endDate) break;
+        
+        const recurrenceTask = {
+          ...newTaskWithId,
+          id: tasks.length + occurrences.length + 1 + i,
+          date_echeance: currentDate.toLocaleDateString('fr-FR'),
+          recurring_parent_id: newTaskWithId.id, // Référence à la tâche parent
+        };
+        
+        occurrences.push(recurrenceTask);
+      }
+      
+      // Ajouter toutes les occurrences
+      setTasks((prevTasks) => [...prevTasks, ...occurrences]);
+    }
+    
     setNewTask({
       title: '',
       description: '',
@@ -150,72 +244,32 @@ function App() {
       urgent: false,
       done: false,
       categories: [],
+      recurring: false,
+      recurrenceInterval: null,
+      recurrenceEndDate: '',
+      contacts: []
     });
     closeTaskModal();
   };
 
   const addCategory = () => {
+    // Assurez-vous que la couleur est bien présente
     const newCategoryWithId = {
       ...newCategory,
       id: categories.length > 0 ? categories[categories.length - 1].id + 1 : 1,
+      // S'assurer que la couleur est définie, utiliser une valeur par défaut si elle ne l'est pas
+      color: newCategory.color || "#cccccc"
     };
-
+  
+    // Ajoutez un log pour déboguer
+    console.log("Nouvelle catégorie créée:", newCategoryWithId);
+  
     setCategories((prevCategories) => [...prevCategories, newCategoryWithId]);
     setNewCategory({
       title: '',
       color: '#000000',
     });
     closeCategoryModal();
-  };
-
-  const handleFileImport = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const importedData = JSON.parse(e.target.result);
-
-          if (importedData.taches && importedData.categories && importedData.relations) {
-            const updatedTasks = importedData.taches.map((task) => {
-              const taskCategories = importedData.relations
-                .filter((relation) => relation.tache === task.id)
-                .map((relation) =>
-                  importedData.categories.find((cat) => cat.id === relation.categorie)
-                );
-
-              return {
-                ...task,
-                categories: taskCategories,
-              };
-            });
-
-            updatedTasks.sort(
-              (a, b) =>
-                new Date(a.date_echeance.split('/').reverse().join('-')) -
-                new Date(b.date_echeance.split('/').reverse().join('-'))
-            );
-
-            setTasks(updatedTasks);
-            setCategories(importedData.categories);
-            alert("Données importées avec succès !");
-          } else {
-            alert("Le fichier JSON ne contient pas les données attendues.");
-          }
-        } catch (error) {
-          alert("Erreur lors de l'importation du fichier JSON.");
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const resetData = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir réinitialiser toutes les données ? Cette action est irréversible.")) {
-      setTasks([]);
-      setCategories([]);
-      alert("Les données ont été réinitialisées.");
-    }
   };
 
   const handleCategoryClick = (categoryId) => {
@@ -236,46 +290,129 @@ function App() {
   };
 
   const sortTasks = (tasks, criteria) => {
-    switch (criteria) {
-      case 'date_recent':
-        return tasks.sort((a, b) => new Date(b.date_echeance.split('/').reverse().join('-')) - new Date(a.date_echeance.split('/').reverse().join('-')));
+    switch (criteria.type || criteria) {
       case 'date_late':
+        return tasks.sort((a, b) => new Date(b.date_echeance.split('/').reverse().join('-')) - new Date(a.date_echeance.split('/').reverse().join('-')));
+      case 'date_recent':
         return tasks.sort((a, b) => new Date(a.date_echeance.split('/').reverse().join('-')) - new Date(b.date_echeance.split('/').reverse().join('-')));
       case 'alphabetical':
         return tasks.sort((a, b) => a.title.localeCompare(b.title));
       case 'category':
         return tasks.sort((a, b) => (a.categories[0]?.title || '').localeCompare(b.categories[0]?.title || ''));
+      case 'contact':
+        if (!criteria.value) return tasks; // Retourner toutes les tâches si aucun contact n'est sélectionné
+        return tasks.filter((task) => (task.contacts || []).some(contact => contact.name === criteria.value));
       default:
         return tasks;
     }
   };
 
+  const exportData = () => {
+    // Recréer la structure des données comme dans data.json
+    const exportTasks = tasks.map(task => {
+      // Exclure les catégories de la tâche car elles seront représentées par des relations
+      const { categories, ...taskWithoutCategories } = task;
+      return taskWithoutCategories;
+    });
+  
+    // Créer les relations entre tâches et catégories
+    const exportRelations = [];
+    tasks.forEach(task => {
+      task.categories.forEach(category => {
+        exportRelations.push({
+          tache: task.id,
+          categorie: category.id
+        });
+      });
+    });
+  
+    // Créer l'objet final à exporter
+    const exportData = {
+      taches: exportTasks,
+      categories: categories,
+      relations: exportRelations
+    };
+  
+    // Convertir en JSON et créer un fichier téléchargeable
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    // Créer un élément <a> temporaire pour le téléchargement
+    const exportFileDefaultName = 'todo_export.json';
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
   const filteredTasks = tasks
-  .filter((task) => showCompletedTasks || !task.done) // Filtrer les tâches effectuées si nécessaire
-  .filter((task) => (filteredCategory ? task.categories.some((cat) => cat.id === filteredCategory) : true));
+  .filter((task) => showCompletedTasks || !task.done)
+  .filter((task) => (filteredCategory ? task.categories.some((cat) => cat.id === filteredCategory) : true))
+  .filter((task) => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const dueDate = new Date(task.date_echeance.split('/').reverse().join('-'));
+    
+    return task.done || dueDate >= oneWeekAgo;
+  })
+  // Ajouter le filtre de recherche
+  .filter((task) => {
+    // Appliquer le filtre uniquement si au moins 3 caractères sont saisis
+    if (searchQuery.length >= 3) {
+      return task.title.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true; 
+  });
 
   const sortedTasks = sortTasks(filteredTasks, sortCriteria);
 
-  return (
+  const openTaskForEdit = (task) => {
+    const taskWithCategoryIds = {
+      ...task,
+      categories: task.categories.map(category => category.id)
+    };
+    
+    setTaskToEdit(taskWithCategoryIds);
+    setIsEditing(true);
+    setIsTaskModalOpen(true);
+  };
+
+  const updateTask = () => {
+    const updatedTaskWithCategories = {
+      ...taskToEdit,
+      categories: taskToEdit.categories.map((categoryId) => 
+        categories.find((cat) => cat.id === categoryId)
+      ),
+      date_echeance: typeof taskToEdit.date_echeance === 'string' && taskToEdit.date_echeance.includes('-') 
+        ? new Date(taskToEdit.date_echeance).toLocaleDateString('fr-FR')
+        : taskToEdit.date_echeance
+    };
+
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === updatedTaskWithCategories.id ? updatedTaskWithCategories : task
+      )
+    );
+
+    setIsEditing(false);
+    setTaskToEdit(null);
+    closeTaskModal();
+  };
+
+  // Rendu conditionnel : StartScreen ou Application principale
+  return isInitialized ? (
+    // Application principale
     <div>
       <Header
         totalTasks={totalTasks}
         ongoingTasks={ongoingTasks}
         completedTasks={completedTasks}
       />
-      <div className="import-reset-buttons">
-        <label htmlFor="file-input" className="import-button">
-          Importer un fichier JSON
-        </label>
-        <input
-          id="file-input"
-          type="file"
-          accept=".json"
-          onChange={handleFileImport}
-          style={{ display: "none" }}
-        />
-        <button className="reset-button" onClick={resetData}>
-          Réinitialiser les données
+      {/* Bouton d'export seulement (import et reset sont supprimés de cette vue) */}
+      <div className="app-actions">
+        <button className="export-button" onClick={exportData}>
+          Exporter les données
         </button>
       </div>
       <div className="toggle-completed-tasks">
@@ -291,13 +428,28 @@ function App() {
           {showCompletedTasks ? 'Masquer les tâches effectuées' : 'Afficher les tâches effectuées'}
         </span>
       </div>
-      <button onClick={() => setFilteredCategory(null)}>Afficher toutes les tâches</button>
-      <select onChange={(e) => setSortCriteria(e.target.value)} value={sortCriteria}>
-        <option value="date_recent">Date d'échéance (la plus tardive)</option>
-        <option value="date_late">Date d'échéance (la plus récente)</option>
-        <option value="alphabetical">Ordre alphabétique</option>
-        <option value="category">Catégorie</option>
-      </select>
+      <button 
+        className="reset-filters-button" 
+        onClick={() => {
+          // Réinitialiser tous les filtres
+          setFilteredCategory(null);
+          setSortCriteria('date_recent'); // Réinitialiser le critère de tri
+          setSearchQuery(''); // Réinitialiser la recherche aussi
+        }}
+      >
+        Réinitialiser les filtres
+      </button>
+      <button className="filter-button" onClick={() => setIsSortModalOpen(true)}>
+        Trier les tâches
+      </button>
+      {isSortModalOpen && (
+        <SortModal
+          closeModal={() => setIsSortModalOpen(false)}
+          setSortCriteria={setSortCriteria}
+          contacts={[...new Set(tasks.flatMap((task) => task.contacts || []).map((contact) => contact.name).filter((name) => name))]}
+        />
+      )}
+      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <Todo
         tasks={sortedTasks}
         categories={categories}
@@ -311,15 +463,19 @@ function App() {
         deleteSelectedTasks={deleteSelectedTasks}
         toggleSelectedTasksStatus={toggleSelectedTasksStatus}
         removeCategoryFromTask={removeCategoryFromTask}
-        handleCategoryClick={handleCategoryClick} // Passez la fonction ici
+        handleCategoryClick={handleCategoryClick}
+        openTaskForEdit={openTaskForEdit}
       />
       {isTaskModalOpen && (
         <TaskModal
-          newTask={newTask}
-          setNewTask={setNewTask}
+          newTask={isEditing ? taskToEdit : newTask}
+          setNewTask={isEditing ? setTaskToEdit : setNewTask}
           categories={categories}
           addTask={addTask}
+          updateTask={updateTask}
+          isEditing={isEditing}
           closeModal={closeTaskModal}
+          existingContacts={[...new Set(tasks.flatMap(task => (task.contacts || []).map(contact => contact.name)))]}
         />
       )}
       {isCategoryModalOpen && (
@@ -340,6 +496,12 @@ function App() {
         )}
       </div>
     </div>
+  ) : (
+    // Écran de démarrage
+    <StartScreen
+      onStart={startWithEmptyData}
+      onImport={startWithImportedData}
+    />
   );
 }
 

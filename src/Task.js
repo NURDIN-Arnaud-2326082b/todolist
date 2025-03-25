@@ -10,11 +10,19 @@ function Task({
   toggleTaskSelection,
   removeCategoryFromTask,
   handleCategoryClick,
+  openTaskForEdit,
 }) {
   const isOpen = openTask === task.id;
+  const hasMoreCategories = task.categories && task.categories.length > 2;
+  const visibleCategories = hasMoreCategories && !isOpen 
+    ? task.categories.slice(0, 2) 
+    : task.categories;
+  const hiddenCategoriesCount = hasMoreCategories && !isOpen 
+    ? task.categories.length - 2 
+    : 0;
 
   return (
-    <li className={`task-item ${task.done ? 'done' : ''}`}>
+    <li className={`task-item ${task.done ? 'done' : ''} ${task.urgent ? 'urgent' : ''}`}>
       <div className="task-header">
         <input
           type="checkbox"
@@ -24,7 +32,11 @@ function Task({
         <strong>
           {task.title} - {task.date_echeance}
         </strong>
-        {task.urgent && <span className="urgent-indicator"></span>}
+        {task.recurring && (
+          <span className="recurrence-indicator" title="Tâche récurrente">
+            🔄
+          </span>
+        )}
         <span
           className={`task-toggle ${isOpen ? 'open' : ''}`}
           onClick={() => toggleTaskDetails(task.id)}
@@ -32,8 +44,8 @@ function Task({
       </div>
 
       <div className="task-categories">
-        {task.categories &&
-          task.categories.map((category) => (
+        {visibleCategories &&
+          visibleCategories.map((category) => (
             <span
               key={category.id}
               className="task-category"
@@ -52,6 +64,17 @@ function Task({
               </button>
             </span>
           ))}
+        
+        {/* Afficher le nombre de catégories supplémentaires */}
+        {hiddenCategoriesCount > 0 && (
+          <span 
+            className="more-categories" 
+            onClick={() => toggleTaskDetails(task.id)}
+            title="Voir toutes les catégories"
+          >
+            +{hiddenCategoriesCount}
+          </span>
+        )}
       </div>
 
       {isOpen && (
@@ -64,10 +87,13 @@ function Task({
               ? task.contacts.map((c) => c.name).join(', ')
               : 'Aucun contact'}
           </p>
-          <button onClick={() => toggleTaskStatus(task.id)}>
-            {task.done ? "Annuler" : "Finaliser"}
-          </button>
-          <button onClick={() => deleteTask(task.id)}>Supprimer</button>
+          <div className="task-actions">
+            <button onClick={() => toggleTaskStatus(task.id)}>
+              {task.done ? "Annuler" : "Finaliser"}
+            </button>
+            <button onClick={() => openTaskForEdit(task)}>Modifier</button>
+            <button onClick={() => deleteTask(task.id)}>Supprimer</button>
+          </div>
         </div>
       )}
     </li>

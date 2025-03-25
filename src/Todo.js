@@ -15,6 +15,7 @@ function Todo({
   toggleSelectedTasksStatus,
   removeCategoryFromTask,
   handleCategoryClick,
+  openTaskForEdit
 }) {
 
 
@@ -33,6 +34,7 @@ function Todo({
             toggleTaskSelection={toggleTaskSelection}
             removeCategoryFromTask={removeCategoryFromTask}
             handleCategoryClick={handleCategoryClick}
+            openTaskForEdit={openTaskForEdit}
           />
         ))}
       </ul>
