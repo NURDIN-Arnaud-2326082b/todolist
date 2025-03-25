@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 function CategoryModal({ newCategory, setNewCategory, addCategory, closeModal }) {
   const [formErrors, setFormErrors] = useState({});
-  const [isFormValid, setIsFormValid] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Vérifier la validité du formulaire à chaque changement
-  useEffect(() => {
-    validateForm();
-  }, [newCategory]);
-
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const errors = {};
     
     if (!newCategory.title.trim()) errors.title = "Le titre est obligatoire";
     
     setFormErrors(errors);
-    setIsFormValid(Object.keys(errors).length === 0);
-  };
+  }, [newCategory]);
+
+  useEffect(() => {
+    validateForm();
+  }, [validateForm]);
 
   const handleTitleChange = (e) => {
     setNewCategory({ ...newCategory, title: e.target.value });
@@ -28,6 +26,8 @@ function CategoryModal({ newCategory, setNewCategory, addCategory, closeModal })
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setFormSubmitted(true);
+    
     validateForm();
     
     if (Object.keys(formErrors).length === 0) {
@@ -49,9 +49,9 @@ function CategoryModal({ newCategory, setNewCategory, addCategory, closeModal })
               value={newCategory.title}
               onChange={handleTitleChange}
               required
-              className={formErrors.title ? "error-input" : ""}
+              className={formSubmitted && formErrors.title ? "error-input" : ""}
             />
-            {formErrors.title && <span className="error-message">{formErrors.title}</span>}
+            {formSubmitted && formErrors.title && <span className="error-message">{formErrors.title}</span>}
           </label>
           <label>
             Couleur* :

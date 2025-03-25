@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 function TaskModal({ 
   newTask, 
@@ -13,8 +13,31 @@ function TaskModal({
   const [contactInput, setContactInput] = useState('');
   const [contactSuggestions, setContactSuggestions] = useState([]);
   const [formErrors, setFormErrors] = useState({});
-  const [isFormValid, setIsFormValid] = useState(false);
+  // Suppression de la variable inutilisée
+  // const [isFormValid, setIsFormValid] = useState(false);
   const [selectedRecurrenceType, setSelectedRecurrenceType] = useState('');
+  // État pour suivre si le formulaire a été soumis
+  const [formSubmitted, setFormSubmitted] = useState(false);
+
+  // Utilisation de useCallback pour mémoriser la fonction validateForm
+  const validateForm = useCallback(() => {
+    const errors = {};
+    
+    // Vérification des champs obligatoires
+    if (!newTask.title.trim()) errors.title = "Le titre est obligatoire";
+    if (!newTask.date_echeance) errors.date_echeance = "La date d'échéance est obligatoire";
+    
+    // Vérification spécifique pour les tâches récurrentes
+    if (newTask.recurring && !newTask.recurrenceInterval) {
+      errors.recurrenceInterval = "Veuillez sélectionner un type de récurrence";
+    }
+    
+    // Vérification des catégories
+    if (newTask.categories.length === 0) errors.categories = "Au moins une catégorie est requise";
+    
+    setFormErrors(errors);
+    // setIsFormValid(Object.keys(errors).length === 0); // Ligne supprimée car non utilisée
+  }, [newTask]); // Ajouter la dépendance newTask
 
   // Initialiser le type de récurrence sélectionné au chargement
   useEffect(() => {
@@ -34,27 +57,7 @@ function TaskModal({
   // Vérifier la validité du formulaire à chaque changement
   useEffect(() => {
     validateForm();
-  }, [newTask]);
-
-  const validateForm = () => {
-    const errors = {};
-    
-    // Vérification des champs obligatoires
-    if (!newTask.title.trim()) errors.title = "Le titre est obligatoire";
-    if (!newTask.date_echeance) errors.date_echeance = "La date d'échéance est obligatoire";
-    if (!newTask.description.trim()) errors.description = "La description est obligatoire";
-    
-    // Vérification spécifique pour les tâches récurrentes
-    if (newTask.recurring && !newTask.recurrenceInterval) {
-      errors.recurrenceInterval = "Veuillez sélectionner un type de récurrence";
-    }
-    
-    // Vérification des catégories
-    if (newTask.categories.length === 0) errors.categories = "Au moins une catégorie est requise";
-    
-    setFormErrors(errors);
-    setIsFormValid(Object.keys(errors).length === 0);
-  };
+  }, [validateForm]); // Utiliser validateForm comme dépendance
 
   const addCategoryToTask = (categoryId) => {
     const selectedCategories = newTask.categories || [];
@@ -75,6 +78,9 @@ function TaskModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Marquer le formulaire comme soumis pour afficher les erreurs
+    setFormSubmitted(true);
+    
     validateForm();
     
     if (Object.keys(formErrors).length === 0) {
@@ -101,19 +107,16 @@ function TaskModal({
               value={newTask.title}
               onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
               required
-              className={formErrors.title ? "error-input" : ""}
+              className={formSubmitted && formErrors.title ? "error-input" : ""}
             />
-            {formErrors.title && <span className="error-message">{formErrors.title}</span>}
+            {formSubmitted && formErrors.title && <span className="error-message">{formErrors.title}</span>}
           </label>
           <label>
-            Description* :
+            Description :
             <textarea
               value={newTask.description}
               onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-              required
-              className={formErrors.description ? "error-input" : ""}
             />
-            {formErrors.description && <span className="error-message">{formErrors.description}</span>}
           </label>
           <label>
             Date d'échéance* :
@@ -122,9 +125,9 @@ function TaskModal({
               value={newTask.date_echeance}
               onChange={(e) => setNewTask({ ...newTask, date_echeance: e.target.value })}
               required
-              className={formErrors.date_echeance ? "error-input" : ""}
+              className={formSubmitted && formErrors.date_echeance ? "error-input" : ""}
             />
-            {formErrors.date_echeance && <span className="error-message">{formErrors.date_echeance}</span>}
+            {formSubmitted && formErrors.date_echeance && <span className="error-message">{formErrors.date_echeance}</span>}
           </label>
           <label>
             Urgent :
@@ -140,7 +143,6 @@ function TaskModal({
               type="checkbox"
               checked={newTask.recurring}
               onChange={(e) => {
-                // Si on désactive la récurrence, réinitialiser les valeurs associées
                 if (!e.target.checked) {
                   setNewTask({
                     ...newTask,
@@ -181,7 +183,7 @@ function TaskModal({
                     setNewTask({ ...newTask, recurrenceInterval: interval });
                   }}
                   required={newTask.recurring}
-                  className={formErrors.recurrenceInterval ? "error-input" : ""}
+                  className={formSubmitted && formErrors.recurrenceInterval ? "error-input" : ""}
                 >
                   <option value="">-- Sélectionner --</option>
                   <option value="daily">Quotidienne</option>
@@ -189,7 +191,7 @@ function TaskModal({
                   <option value="monthly">Mensuelle</option>
                   <option value="yearly">Annuelle</option>
                 </select>
-                {formErrors.recurrenceInterval && <span className="error-message">{formErrors.recurrenceInterval}</span>}
+                {formSubmitted && formErrors.recurrenceInterval && <span className="error-message">{formErrors.recurrenceInterval}</span>}
               </label>
               <label>
                 Jusqu'à :
@@ -211,7 +213,7 @@ function TaskModal({
                   e.target.value = ""; // Réinitialiser le menu déroulant
                 }
               }}
-              className={formErrors.categories ? "error-input" : ""}
+              className={formSubmitted && formErrors.categories ? "error-input" : ""}
             >
               <option value="">-- Sélectionner une catégorie --</option>
               {categories
@@ -222,7 +224,7 @@ function TaskModal({
                   </option>
                 ))}
             </select>
-            {formErrors.categories && <span className="error-message">{formErrors.categories}</span>}
+            {formSubmitted && formErrors.categories && <span className="error-message">{formErrors.categories}</span>}
           </label>
           <div className="selected-categories">
             {newTask.categories.map((categoryId) => {

@@ -47,6 +47,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+  const savedMode = localStorage.getItem('darkMode');
+    return savedMode === 'true' ? true : false;
+  });
 
 const startWithEmptyData = () => {
   const confirmNewList = window.confirm("Voulez-vous vraiment créer une nouvelle liste vide ?");
@@ -300,7 +304,7 @@ const startWithEmptyData = () => {
       case 'category':
         return tasks.sort((a, b) => (a.categories[0]?.title || '').localeCompare(b.categories[0]?.title || ''));
       case 'contact':
-        if (!criteria.value) return tasks; // Retourner toutes les tâches si aucun contact n'est sélectionné
+        if (!criteria.value) return tasks;
         return tasks.filter((task) => (task.contacts || []).some(contact => contact.name === criteria.value));
       default:
         return tasks;
@@ -308,9 +312,7 @@ const startWithEmptyData = () => {
   };
 
   const exportData = () => {
-    // Recréer la structure des données comme dans data.json
     const exportTasks = tasks.map(task => {
-      // Exclure les catégories de la tâche car elles seront représentées par des relations
       const { categories, ...taskWithoutCategories } = task;
       return taskWithoutCategories;
     });
@@ -368,8 +370,14 @@ const startWithEmptyData = () => {
   const sortedTasks = sortTasks(filteredTasks, sortCriteria);
 
   const openTaskForEdit = (task) => {
+    const dateParts = task.date_echeance.split('/');
+    const formattedDate = dateParts.length === 3 
+      ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` 
+      : task.date_echeance;
+    
     const taskWithCategoryIds = {
       ...task,
+      date_echeance: formattedDate,
       categories: task.categories.map(category => category.id)
     };
     
@@ -378,38 +386,91 @@ const startWithEmptyData = () => {
     setIsTaskModalOpen(true);
   };
 
-  const updateTask = () => {
-    const updatedTaskWithCategories = {
-      ...taskToEdit,
-      categories: taskToEdit.categories.map((categoryId) => 
-        categories.find((cat) => cat.id === categoryId)
-      ),
-      date_echeance: typeof taskToEdit.date_echeance === 'string' && taskToEdit.date_echeance.includes('-') 
-        ? new Date(taskToEdit.date_echeance).toLocaleDateString('fr-FR')
-        : taskToEdit.date_echeance
-    };
-
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === updatedTaskWithCategories.id ? updatedTaskWithCategories : task
-      )
-    );
-
-    setIsEditing(false);
-    setTaskToEdit(null);
-    closeTaskModal();
+  const updateTask = (taskChanges) => {
+    if (taskChanges) {
+      const validCategoryIds = taskChanges.categories.filter(categoryId => 
+        categories.some(cat => cat.id === categoryId)
+      );
+      
+      const updatedTaskWithCategories = {
+        ...taskChanges,
+        categories: validCategoryIds.map(categoryId => 
+          categories.find(cat => cat.id === categoryId)
+        ),
+        date_echeance: typeof taskChanges.date_echeance === 'string' && taskChanges.date_echeance.includes('-') 
+          ? new Date(taskChanges.date_echeance).toLocaleDateString('fr-FR')
+          : taskChanges.date_echeance
+      };
+  
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === updatedTaskWithCategories.id ? updatedTaskWithCategories : task
+        )
+      );
+      
+      setIsEditing(false);
+      setTaskToEdit(null);
+      closeTaskModal();
+    } 
+    else {
+      const validCategoryIds = taskToEdit.categories.filter(categoryId => 
+        categories.some(cat => cat.id === categoryId)
+      );
+      
+      const updatedTaskWithCategories = {
+        ...taskToEdit,
+        categories: validCategoryIds.map(categoryId => 
+          categories.find(cat => cat.id === categoryId)
+        ),
+        date_echeance: typeof taskToEdit.date_echeance === 'string' && taskToEdit.date_echeance.includes('-') 
+          ? new Date(taskToEdit.date_echeance).toLocaleDateString('fr-FR')
+          : taskToEdit.date_echeance
+      };
+  
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === updatedTaskWithCategories.id ? updatedTaskWithCategories : task
+        )
+      );
+      
+      setIsEditing(false);
+      setTaskToEdit(null);
+      closeTaskModal();
+    }
   };
 
-  // Rendu conditionnel : StartScreen ou Application principale
+const areFiltersActive = () => {
+  return filteredCategory !== null || 
+         sortCriteria !== 'date_recent' || 
+         searchQuery.length >= 3;
+}
+
+const toggleDarkMode = () => {
+  const newMode = !darkMode;
+  setDarkMode(newMode);
+  localStorage.setItem('darkMode', newMode);
+  // Appliquer le mode au document
+  if (newMode) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+};
+
   return isInitialized ? (
-    // Application principale
     <div>
+
+<div className="theme-switcher">
+    <label className="theme-switch">
+      <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} />
+      <span className="theme-slider"></span>
+    </label>
+  </div>
       <Header
         totalTasks={totalTasks}
         ongoingTasks={ongoingTasks}
         completedTasks={completedTasks}
       />
-      {/* Bouton d'export seulement (import et reset sont supprimés de cette vue) */}
       <div className="app-actions">
         <button className="export-button" onClick={exportData}>
           Exporter les données
@@ -428,20 +489,21 @@ const startWithEmptyData = () => {
           {showCompletedTasks ? 'Masquer les tâches effectuées' : 'Afficher les tâches effectuées'}
         </span>
       </div>
-      <button 
-        className="reset-filters-button" 
-        onClick={() => {
-          // Réinitialiser tous les filtres
-          setFilteredCategory(null);
-          setSortCriteria('date_recent'); // Réinitialiser le critère de tri
-          setSearchQuery(''); // Réinitialiser la recherche aussi
-        }}
-      >
-        Réinitialiser les filtres
-      </button>
-      <button className="filter-button" onClick={() => setIsSortModalOpen(true)}>
-        Trier les tâches
-      </button>
+<div className="search-container">
+  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+  <button 
+    className={`filter-button ${areFiltersActive() ? 'active' : ''}`} 
+    onClick={() => {
+      if (areFiltersActive()) {
+        setFilteredCategory(null);
+        setSortCriteria('date_recent');
+        setSearchQuery('');
+      } else {
+        setIsSortModalOpen(true);
+      }
+    }}
+  />
+</div>
       {isSortModalOpen && (
         <SortModal
           closeModal={() => setIsSortModalOpen(false)}
@@ -449,7 +511,6 @@ const startWithEmptyData = () => {
           contacts={[...new Set(tasks.flatMap((task) => task.contacts || []).map((contact) => contact.name).filter((name) => name))]}
         />
       )}
-      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <Todo
         tasks={sortedTasks}
         categories={categories}
@@ -487,17 +548,24 @@ const startWithEmptyData = () => {
         />
       )}
       <div className="fab-container">
-        <button className="fab" onClick={() => setIsFabOpen(!isFabOpen)}>+</button>
-        {isFabOpen && (
-          <div className="fab-options">
-            <button onClick={openTaskModal}>Ajouter une tâche</button>
-            <button onClick={openCategoryModal}>Ajouter une catégorie</button>
-          </div>
-        )}
+  <button className="fab" onClick={() => setIsFabOpen(!isFabOpen)}>+</button>
+  {isFabOpen && (
+    <div className="fab-modal">
+      <div className="fab-modal-content">
+        <div className="fab-modal-options">
+          <button onClick={openTaskModal}>
+            Ajouter une tâche
+          </button>
+          <button onClick={openCategoryModal}>
+            Ajouter une catégorie
+          </button>
+        </div>
       </div>
     </div>
+  )}
+</div>
+    </div>
   ) : (
-    // Écran de démarrage
     <StartScreen
       onStart={startWithEmptyData}
       onImport={startWithImportedData}

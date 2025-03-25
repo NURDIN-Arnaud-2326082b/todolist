@@ -44,38 +44,39 @@ function Task({
       </div>
 
       <div className="task-categories">
-        {visibleCategories &&
-          visibleCategories.map((category) => (
-            <span
-              key={category.id}
-              className="task-category"
-              style={{ backgroundColor: category.color }}
-              onClick={() => handleCategoryClick(category.id)}
-            >
-              {category.title}
-              <button
-                className="remove-category"
-                onClick={(e) => {
-                  e.stopPropagation(); 
-                  removeCategoryFromTask(task.id, category.id);
-                }}
-              >
-                x
-              </button>
-            </span>
-          ))}
-        
-        {/* Afficher le nombre de catégories supplémentaires */}
-        {hiddenCategoriesCount > 0 && (
-          <span 
-            className="more-categories" 
-            onClick={() => toggleTaskDetails(task.id)}
-            title="Voir toutes les catégories"
+  {visibleCategories &&
+    visibleCategories
+      .filter(category => category && category.color) 
+      .map((category) => (
+        <span
+          key={category.id}
+          className="task-category"
+          style={{ backgroundColor: category.color }}
+          onClick={() => handleCategoryClick(category.id)}
+        >
+          {category.title}
+          <button
+            className="remove-category"
+            onClick={(e) => {
+              e.stopPropagation(); 
+              removeCategoryFromTask(task.id, category.id);
+            }}
           >
-            +{hiddenCategoriesCount}
-          </span>
-        )}
-      </div>
+            x
+          </button>
+        </span>
+      ))}
+  
+  {hiddenCategoriesCount > 0 && (
+    <span 
+      className="more-categories" 
+      onClick={() => toggleTaskDetails(task.id)}
+      title="Voir toutes les catégories"
+    >
+      +{hiddenCategoriesCount}
+    </span>
+  )}
+</div>
 
       {isOpen && (
         <div className="task-details">
