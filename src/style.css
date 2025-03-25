@@ -255,6 +255,10 @@ ul {
 }
 
 .task-details p {
+  word-wrap: break-word; 
+  word-break: break-word; 
+  white-space: normal; 
+  overflow-wrap: break-word; 
   margin: 5px 0;
 }
 
@@ -702,40 +706,46 @@ input:checked + .slider:before {
   color: white;
   border: none;
   border-radius: 5px;
-  width: 40px; /* Largeur fixe */
-  height: 40px; /* Hauteur fixe */
+  width: 40px; 
+  height: 40px; 
   cursor: pointer;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  font-size: 18px;
 }
 
 .filter-button:hover {
   background-color: var(--secondary-hover);
 }
 
-/* Icône d'entonnoir (filtre) en CSS */
-.filter-button::before {
-  content: "\2207"; /* Caractère Unicode pour un triangle vers le bas */
-  font-size: 18px;
-  transform: rotate(180deg); /* Retourner pour ressembler à un entonnoir */
+.remove-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: transparent;
+  color: var(--text-color);
+  border: none;
+  font-size: 30px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 
-/* Style pour le bouton de filtre quand il est actif (réinitialiser) */
-.filter-button.active {
-  background-color: var(--danger-color); /* Rouge pour indiquer action de suppression */
+.remove-filter:hover {
+  background-color: transparent;
+  color: var(--danger-color);
 }
 
-.filter-button.active:hover {
-  background-color: #bd2130;
+.filter-button-container {
+  display: flex;
+  align-items: center;
 }
 
-/* Icône de poubelle pour réinitialiser */
-.filter-button.active::before {
-  content: "\1F5D1"; /* Caractère Unicode pour poubelle */
-  transform: none;
-}
+
 
 .more-categories {
   display: inline-block;

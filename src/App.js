@@ -299,6 +299,10 @@ const startWithEmptyData = () => {
         return tasks.sort((a, b) => new Date(b.date_echeance.split('/').reverse().join('-')) - new Date(a.date_echeance.split('/').reverse().join('-')));
       case 'date_recent':
         return tasks.sort((a, b) => new Date(a.date_echeance.split('/').reverse().join('-')) - new Date(b.date_echeance.split('/').reverse().join('-')));
+      case 'creation_recent':
+        return tasks.sort((a, b) => new Date(b.date_creation.split('/').reverse().join('-')) - new Date(a.date_creation.split('/').reverse().join('-')));
+      case 'creation_old':
+        return tasks.sort((a, b) => new Date(a.date_creation.split('/').reverse().join('-')) - new Date(b.date_creation.split('/').reverse().join('-')));
       case 'alphabetical':
         return tasks.sort((a, b) => a.title.localeCompare(b.title));
       case 'category':
@@ -491,18 +495,26 @@ const toggleDarkMode = () => {
       </div>
 <div className="search-container">
   <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+  <div className="filter-button-container">
   <button 
-    className={`filter-button ${areFiltersActive() ? 'active' : ''}`} 
-    onClick={() => {
-      if (areFiltersActive()) {
+    className="filter-button" 
+    onClick={() => setIsSortModalOpen(true)}
+  >
+    <i className="fas fa-filter"></i>
+  </button>
+  {filteredCategory || sortCriteria !== 'date_recent' ? (
+    <button 
+      className="remove-filter" 
+      onClick={() => {
         setFilteredCategory(null);
         setSortCriteria('date_recent');
-        setSearchQuery('');
-      } else {
-        setIsSortModalOpen(true);
-      }
-    }}
-  />
+      }}
+      title="Supprimer les filtres"
+    >
+      x
+    </button>
+  ) : null}
+</div>
 </div>
       {isSortModalOpen && (
         <SortModal

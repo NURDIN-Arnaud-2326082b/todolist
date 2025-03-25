@@ -6,8 +6,17 @@ function SortModal({ closeModal, setSortCriteria, contacts }) {
       <div className="sort-modal-content">
         <h3>Trier les tâches</h3>
         <div className="sort-modal-options">
+        <button onClick={() => { setSortCriteria('date_recent'); closeModal(); }}>
+            Date d'échéance (la plus récente)
+          </button>
           <button onClick={() => { setSortCriteria('date_late'); closeModal(); }}>
             Date d'échéance (la plus tardive)
+          </button>
+          <button onClick={() => { setSortCriteria('creation_recent'); closeModal(); }}>
+            Date de création (la plus récente)
+          </button>
+          <button onClick={() => { setSortCriteria('creation_old'); closeModal(); }}>
+            Date de création (la plus ancienne)
           </button>
           <button onClick={() => { setSortCriteria('alphabetical'); closeModal(); }}>
             Ordre alphabétique

@@ -13,10 +13,7 @@ function TaskModal({
   const [contactInput, setContactInput] = useState('');
   const [contactSuggestions, setContactSuggestions] = useState([]);
   const [formErrors, setFormErrors] = useState({});
-  // Suppression de la variable inutilisée
-  // const [isFormValid, setIsFormValid] = useState(false);
   const [selectedRecurrenceType, setSelectedRecurrenceType] = useState('');
-  // État pour suivre si le formulaire a été soumis
   const [formSubmitted, setFormSubmitted] = useState(false);
 
   // Utilisation de useCallback pour mémoriser la fonction validateForm
@@ -32,12 +29,12 @@ function TaskModal({
       errors.recurrenceInterval = "Veuillez sélectionner un type de récurrence";
     }
     
-    // Vérification des catégories
-    if (newTask.categories.length === 0) errors.categories = "Au moins une catégorie est requise";
+    // Suppression de la validation obligatoire des catégories
+    // if (newTask.categories.length === 0) errors.categories = "Au moins une catégorie est requise";
     
     setFormErrors(errors);
-    // setIsFormValid(Object.keys(errors).length === 0); // Ligne supprimée car non utilisée
-  }, [newTask]); // Ajouter la dépendance newTask
+    return Object.keys(errors).length === 0;
+  }, [newTask]);
 
   // Initialiser le type de récurrence sélectionné au chargement
   useEffect(() => {
@@ -57,7 +54,7 @@ function TaskModal({
   // Vérifier la validité du formulaire à chaque changement
   useEffect(() => {
     validateForm();
-  }, [validateForm]); // Utiliser validateForm comme dépendance
+  }, [validateForm]);
 
   const addCategoryToTask = (categoryId) => {
     const selectedCategories = newTask.categories || [];
@@ -78,14 +75,13 @@ function TaskModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Marquer le formulaire comme soumis pour afficher les erreurs
     setFormSubmitted(true);
     
-    validateForm();
+    const isValid = validateForm();
     
-    if (Object.keys(formErrors).length === 0) {
+    if (isValid) {
       if (isEditing) {
-        updateTask();
+        updateTask(newTask);
       } else {
         addTask();
       }
@@ -114,7 +110,7 @@ function TaskModal({
           <label>
             Description :
             <textarea
-              value={newTask.description}
+              value={newTask.description || ''}
               onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
             />
           </label>
@@ -204,18 +200,30 @@ function TaskModal({
             </>
           )}
           <label>
-            Catégories* :
+            Catégories : {/* Suppression de l'astérisque */}
             <select
               onChange={(e) => {
-                const categoryId = parseInt(e.target.value, 10);
-                if (categoryId) {
-                  addCategoryToTask(categoryId);
-                  e.target.value = ""; // Réinitialiser le menu déroulant
+                const value = e.target.value;
+                
+                // Si "Aucune" est sélectionné, vider les catégories
+                if (value === "none") {
+                  setNewTask({
+                    ...newTask,
+                    categories: []
+                  });
+                } else {
+                  // Sinon, ajouter la catégorie normalement
+                  const categoryId = parseInt(value, 10);
+                  if (categoryId) {
+                    addCategoryToTask(categoryId);
+                    e.target.value = ""; // Réinitialiser le menu déroulant
+                  }
                 }
               }}
               className={formSubmitted && formErrors.categories ? "error-input" : ""}
             >
               <option value="">-- Sélectionner une catégorie --</option>
+              <option value="none">Aucune catégorie</option>
               {categories
                 .filter((category) => !newTask.categories.includes(category.id))
                 .map((category) => (
@@ -334,7 +342,7 @@ function TaskModal({
             </button>
             <button type="button" onClick={closeModal}>Annuler</button>
           </div>
-          <div className="required-fields-notice">* Champs obligatoires</div>
+          <div className="required-fields-notice">* Titre, Date d'échéance et Type de récurrence (si récurrente) obligatoires</div>
         </form>
       </div>
     </div>

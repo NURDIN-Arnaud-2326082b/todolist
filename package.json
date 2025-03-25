@@ -1,6 +1,7 @@
 {
   "name": "todolist",
   "version": "0.1.0",
+  "homepage": "https://NURDIN-Arnaud-2326082b.github.io/todolist",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -18,7 +19,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -44,6 +47,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "workbox-webpack-plugin": "^7.3.0"
   }
 }
