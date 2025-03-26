@@ -48,8 +48,8 @@ function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [darkMode, setDarkMode] = useState(() => {
-  const savedMode = localStorage.getItem('darkMode');
-    return savedMode === 'true' ? true : false;
+    const savedMode = localStorage.getItem('darkMode');
+    return savedMode === 'true';
   });
 
 const startWithEmptyData = () => {
@@ -93,12 +93,19 @@ const startWithEmptyData = () => {
     }
   };
 
-  // Demander la permission des notifications
   useEffect(() => {
     if (Notification.permission !== 'granted') {
       Notification.requestPermission();
     }
   }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     // Vérifier les tâches en retard une seule fois au chargement
@@ -124,10 +131,8 @@ const startWithEmptyData = () => {
         }
       });
     }
-  }, [tasks]); // Se déclenche uniquement lorsque les tâches changent
+  }, [tasks]); 
 
-  // Suppression du useEffect qui charge automatiquement les données
-  // ce sera fait par l'écran de démarrage maintenant
 
   const toggleTaskStatus = (id) => {
     setTasks((prevTasks) =>
@@ -442,12 +447,6 @@ const startWithEmptyData = () => {
       closeTaskModal();
     }
   };
-
-const areFiltersActive = () => {
-  return filteredCategory !== null || 
-         sortCriteria !== 'date_recent' || 
-         searchQuery.length >= 3;
-}
 
 const toggleDarkMode = () => {
   const newMode = !darkMode;
